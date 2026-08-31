@@ -1,18 +1,5 @@
 /*
  * Copyright (C) 2018 Tran Le Duy
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 package com.duy.ide.javaide;
@@ -21,17 +8,17 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.NavigationView;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v4.content.FileProvider;
-import android.support.v4.util.Pair;
-import android.support.v4.view.GravityCompat;
 import android.util.Log;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.FileProvider;
+import androidx.core.util.Pair;
+import androidx.core.view.GravityCompat;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.duy.android.compiler.project.AndroidAppProject;
 import com.duy.android.compiler.project.AndroidProjectManager;
@@ -50,13 +37,11 @@ import com.duy.ide.javaide.projectview.dialog.DialogNewJavaProject;
 import com.duy.ide.javaide.projectview.dialog.DialogSelectType;
 import com.duy.ide.javaide.projectview.view.fragments.FolderStructureFragment;
 import com.duy.ide.javaide.utils.FileUtils;
+import com.google.android.material.navigation.NavigationView;
 
 import java.io.File;
 import java.io.IOException;
 
-/**
- * Created by Duy on 09-Mar-17.
- */
 public abstract class ProjectManagerActivity extends IdeActivity
         implements FileChangeListener, DialogNewJavaProject.OnCreateProjectListener {
     private static final String TAG = "BaseEditorActivity";
@@ -70,10 +55,8 @@ public abstract class ProjectManagerActivity extends IdeActivity
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setupToolbar();
         createProjectIfNeed();
-
     }
 
     @Override
@@ -106,18 +89,10 @@ public abstract class ProjectManagerActivity extends IdeActivity
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         ft.replace(R.id.left_navigation_content, folderStructureFragment, tag).commit();
         mFilePresenter = new ProjectFilePresenter(folderStructureFragment);
-
     }
 
-
     public void setupToolbar() {
-//        if (getResources().getConfiguration().orientation == ORIENTATION_PORTRAIT) {
-//            ActionBarDrawerToggle mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, mToolbar,
-//                    R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-//            // Set the drawer toggle as the DrawerListener
-//            mDrawerLayout.setDrawerListener(mDrawerToggle);
-//            mDrawerToggle.syncState();
-//        }
+        // toolbar wired by IdeActivity / theme
     }
 
     @Override
@@ -136,9 +111,6 @@ public abstract class ProjectManagerActivity extends IdeActivity
         }
     }
 
-    /**
-     * @return current file selected
-     */
     @Nullable
     protected File getCurrentFile() {
         EditorDelegate editorFragment = getCurrentEditorDelegate();
@@ -152,7 +124,7 @@ public abstract class ProjectManagerActivity extends IdeActivity
         try {
             mDrawerLayout.openDrawer(gravity);
         } catch (Exception e) {
-            //not found drawer
+            // drawer missing
         }
     }
 
@@ -160,14 +132,11 @@ public abstract class ProjectManagerActivity extends IdeActivity
     public void onProjectCreated(@NonNull JavaProject projectFile) {
         Log.d(TAG, "onProjectCreated() called with: projectFile = [" + projectFile + "]");
 
-        //save project
         mProject = projectFile;
         JavaProjectManager.saveProject(this, projectFile);
 
-        //remove all edit page
         mTabManager.closeAllTab();
 
-        //show file structure of project
         mFilePresenter.show(projectFile, true);
         mDiagnosticPresenter.hidePanel();
         mDiagnosticPresenter.clear();
@@ -187,9 +156,7 @@ public abstract class ProjectManagerActivity extends IdeActivity
     @Override
     public void doOpenFile(File toEdit) {
         if (FileUtils.canEdit(toEdit)) {
-            //save current file
             openFile(toEdit.getPath());
-            //close drawer
             closeDrawers();
         } else {
             openFileByAnotherApp(toEdit);
@@ -204,7 +171,6 @@ public abstract class ProjectManagerActivity extends IdeActivity
             } else {
                 uri = Uri.fromFile(file);
             }
-            //create intent open file
             MimeTypeMap myMime = MimeTypeMap.getSingleton();
             Intent intent = new Intent(Intent.ACTION_VIEW);
             String ext = FileUtils.fileExt(file.getPath());
@@ -256,7 +222,6 @@ public abstract class ProjectManagerActivity extends IdeActivity
         }
     }
 
-
     public void createNewClass(@Nullable File folder) {
         if (folder == null) {
             File file = getCurrentFile();
@@ -265,9 +230,7 @@ public abstract class ProjectManagerActivity extends IdeActivity
             }
         }
         if (mProject != null && folder != null) {
-            DialogNewClass dialogNewClass;
-            dialogNewClass = DialogNewClass.newInstance(mProject, mProject.getPackageName(),
-                    folder);
+            DialogNewClass dialogNewClass = DialogNewClass.newInstance(mProject, mProject.getPackageName(), folder);
             dialogNewClass.show(getSupportFragmentManager(), DialogNewClass.TAG);
         } else {
             toast("Can not create new class");
@@ -276,15 +239,12 @@ public abstract class ProjectManagerActivity extends IdeActivity
 
     public void openJavaProject() {
         String destPath = com.duy.android.compiler.env.Environment.getSdkAppDir().getAbsolutePath();
-        FileExplorerActivity.startPickPathActivity(this, destPath,
-                "UTF-8", REQUEST_OPEN_JAVA_PROJECT);
+        FileExplorerActivity.startPickPathActivity(this, destPath, "UTF-8", REQUEST_OPEN_JAVA_PROJECT);
     }
 
     public void openAndroidProject() {
         String destPath = com.duy.android.compiler.env.Environment.getSdkAppDir().getAbsolutePath();
-        FileExplorerActivity.startPickPathActivity(this, destPath,
-                "UTF-8", REQUEST_OPEN_ANDROID_PROJECT);
-
+        FileExplorerActivity.startPickPathActivity(this, destPath, "UTF-8", REQUEST_OPEN_ANDROID_PROJECT);
     }
 
     public void createJavaProject() {
@@ -298,10 +258,7 @@ public abstract class ProjectManagerActivity extends IdeActivity
     }
 
     public void showDialogNew(@Nullable File parent) {
-        DialogSelectType dialogSelectType = DialogSelectType.newInstance(parent, new DialogSelectType.OnFileTypeSelectListener() {
-            @Override
-            public void onTypeSelected(File parent, String ext) {
-            }
+        DialogSelectType dialogSelectType = DialogSelectType.newInstance(parent, (parent1, ext) -> {
         });
         dialogSelectType.show(getSupportFragmentManager(), DialogNewAndroidProject.TAG);
     }
@@ -309,6 +266,4 @@ public abstract class ProjectManagerActivity extends IdeActivity
     protected void toast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
-
-
 }
