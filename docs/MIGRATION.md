@@ -1,47 +1,64 @@
-# Migration plan — a-java-ide
+# Migration plan — a-java-ide (phone-first)
 
 Branch: `attempt_updating_codebase`
 
-Reference projects:
-- [Conductino-Android](https://github.com/ojilon/Conductino-Android) — modern AGP 8, AndroidX, thin Java layer
-- [Wayer](https://github.com/ojilon/Wayer) — same Gradle style, multi-module, viewBinding
+Reference apps that already run on your phone:
+- [Conductino-Android](https://github.com/ojilon/Conductino-Android)
+- [Wayer](https://github.com/ojilon/Wayer)
+
+## Strategy
+
+Delete old weight instead of porting everything.
+
+You only need **edit / compile / run Java on the device**. You do **not** need the 2018 on-device APK builder (AOSP tree), Play billing, or Crashlytics.
 
 ## Status
 
 | Area | Status |
 |------|--------|
-| Root `settings.gradle` (pluginManagement, dependencyResolutionManagement) | Done |
-| Root `build.gradle` (plugins DSL) | Done |
-| `gradle.properties` (AndroidX flags, version props) | Done |
-| Gradle wrapper → 8.14.5 | Done |
-| Per-module `build.gradle` (AGP 8 + namespace + AndroidX) | **Not started** |
-| Remove Support Library / enable Jetifier cleanup | **Not started** |
-| Remove Fabric / old Firebase / jcenter | **Not started** |
-| Java: functional core, OOP only at XML/Android boundary | **Not started** |
-| XML / themes modernization | **Not started** |
+| Root Gradle (plugins DSL, wrapper 8.x, properties) | Done |
+| Drop `:aosp:*` from settings | Done |
+| Drop Fabric / Firebase / google-services / IAB from `:app` | Done |
+| Module `build.gradle` → AGP 8 shape + AndroidX | Done (remaining modules) |
+| Java sources still import `android.support.*` | **Next** — fix compile errors as they appear |
+| Purchase / Premium / Crashlytics call sites in Java | **Next** — stub or delete |
+| Physical delete of `aosp/` folder from git | Optional (already out of the build) |
+| Functional-style core + thin Activities | After green build |
 
-## Why the build still fails
+## What was removed from the build graph
 
-Root config now expects AGP 8.x and AndroidX, but modules still contain:
+| Removed | Why |
+|---------|-----|
+| `:aosp:*` (builder, lint, sdklib, …) | On-device APK packaging; huge & ancient |
+| Fabric / Crashlytics / Firebase | 2018 analytics; not needed to run on your phone |
+| `google-services` plugin + json | Same |
+| In-app billing (`anjlab`, `purchase/*`) | Premium SKU; not needed for local IDE |
+| `rate-this-app` | Store fluff |
+| Maven `maven-project` / old Support deps in compiler | Pulled by AOSP path |
 
-- `apply plugin: 'com.android.application'` + AGP 3-era blocks
-- `com.android.support:*` dependencies
-- `dataBinding { enabled = true }` old form
-- Fabric / Google Services 3.x classpath
-- `jcenter()` and other removed repositories inside some modules
-- AOSP subprojects written for older Gradle Java plugins
+## What stays
 
-A full green build requires migrating modules one by one (or a larger coordinated PR).
+```
+:app
+:common  :treeview  :androidlogcat
+:jdk-1_7  :dx  :lib-android-compiler  :lib-google-java-format
+:lib-decompiler  :bouncycastle  :lib-n-ide-release-10
+```
 
-## Recommended order
+`lib-n-ide-release-10` is a prebuilt AAR (editor core). Keep it until you replace that surface.
 
-1. **Leaf libraries first** (no Android UI): `:common`, `:bouncycastle`, pure Java AOSP pieces that can become `java-library`.
-2. **Android library modules**: `:treeview`, `:androidlogcat` → AndroidX, `namespace`, `compileSdk 36`.
-3. **Tooling modules**: `:dx`, `:jdk-1_7`, `:lib-*` — keep as Java or Android libraries as appropriate.
-4. **`:app` last** — largest surface; switch Support → AndroidX, remove Fabric, adopt viewBinding or keep dataBinding in new form, Java 17 `compileOptions`.
-5. **Java style pass** after modules compile: extract pure logic from Activities into functions / small stores; leave Activities/Fragments as thin adapters to XML.
+## Expected next compile errors
 
-## Gradle target shape (per Android module)
+After this cut, Gradle should resolve modern plugins, but Java will still reference:
+
+1. `android.support.*` → change to `androidx.*`
+2. Crashlytics / Firebase APIs in `JavaApplication` etc. → remove calls
+3. `InAppPurchaseHelper` / `Premium` → stub `isPremium() = true` or delete UI gates
+4. Any code that called into `com.android.builder` (AOSP) for APK build → gate or remove “Build APK” menu actions
+
+Fix those file-by-file; do not re-add AOSP unless you explicitly want APK-on-phone again.
+
+## Target module shape (already applied)
 
 ```gradle
 plugins {
@@ -49,38 +66,20 @@ plugins {
 }
 
 android {
-    namespace 'com.example.module'
+    namespace '…'
     compileSdk 36
-
     defaultConfig {
         minSdk 26
         targetSdk 34
     }
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
 }
-
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    // ...
-}
 ```
-
-Match Conductino/Wayer for version numbers where practical.
-
-## Java direction
-
-- **Functional:** pure transforms, validation, path/file helpers, model mapping — static methods or small utility types, prefer immutability.
-- **OOP retained:** Activity, Fragment, RecyclerView.Adapter, custom View, Application, anything that must implement Android framework contracts or inflate XML.
-- Avoid new deep inheritance trees; prefer composition (`XxxStore`, `XxxManager`) as in Conductino.
-
-## Docs hygiene
-
-When a module is migrated, note it in this file’s status table and add a one-line entry under “Changelog” below.
 
 ## Changelog
 
-- **2026-08-31** — Root Gradle + wrapper + properties modernized; README / CONTRIBUTING / this plan added.
+- **2026-08-31** — Root Gradle modernized.
+- **2026-08-31** — Phone-first cut: AOSP out of graph, app deps cleaned, all remaining modules on AndroidX/AGP 8 shape.

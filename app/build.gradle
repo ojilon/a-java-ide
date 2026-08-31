@@ -1,137 +1,121 @@
-apply plugin: 'com.android.application'
-apply plugin: 'io.fabric'
+// ─────────────────────────────────────────────────────────────
+// :app — Java N-IDE (phone-first, AndroidX, no Fabric/Firebase/IAB)
+// ─────────────────────────────────────────────────────────────
+plugins {
+    id 'com.android.application'
+}
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
-    useLibrary 'org.apache.http.legacy'
+    namespace 'com.duy.compiler.javanide'
+    compileSdk 36
 
     defaultConfig {
-        applicationId "com.duy.compiler.javanide"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        applicationId 'com.duy.compiler.javanide'
+        minSdk 26
+        targetSdk 34
+
+        versionCode project.property('app.versionCode').toInteger()
+        versionName project.property('app.versionName')
+
         multiDexEnabled true
-        versionCode 45
-        versionName "1.4.5"
         vectorDrawables.useSupportLibrary = true
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
+        // Stub premium keys (IAB removed)
+        buildConfigField 'String', 'BASE64_KEY', '""'
+        buildConfigField 'String', 'SKU_PREMIUM', '""'
     }
+
     sourceSets {
         main {
-            res.srcDirs += "src/main/res-color-picker"
+            res.srcDirs += 'src/main/res-color-picker'
         }
     }
+
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
-    // Map for the version code that gives each ABI a value.
-    applicationVariants.all { variant ->
-        Properties props = new Properties()
-        def propFile = new File(rootProject.projectDir, "signing.properties")
-        if (propFile.exists()) {
-            props.load(new FileInputStream(propFile))
-            buildConfigField "String", "BASE64_KEY", "\"" + props['BASE64_KEY'] + "\""
-            buildConfigField "String", "SKU_PREMIUM", "\"" + props['SKU_PREMIUM'] + "\""
-        } else {
-            buildConfigField "String", "BASE64_KEY", "\"\""
-            buildConfigField "String", "SKU_PREMIUM", "\"\""
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+        // dataBinding kept off until layouts are audited; prefer viewBinding later
+        viewBinding true
+    }
+
+    packaging {
+        resources {
+            excludes += [
+                'META-INF/DEPENDENCIES',
+                'META-INF/LICENSE',
+                'META-INF/LICENSE.txt',
+                'META-INF/license.txt',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.txt',
+                'META-INF/notice.txt',
+                'META-INF/ASL2.0',
+                'META-INF/INDEX.LIST',
+                'META-INF/plexus/components.xml',
+            ]
         }
     }
-    configurations.all {
-        resolutionStrategy.force 'com.google.code.findbugs:jsr305:1.3.9'
-    }
 
-    dataBinding {
-        enabled = true
-    }
-
-    lintOptions {
+    lint {
         disable 'MissingTranslation'
-    }
-    packagingOptions {
-        exclude 'META-INF/DEPENDENCIES'
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/LICENSE.txt'
-        exclude 'META-INF/license.txt'
-        exclude 'META-INF/NOTICE'
-        exclude 'META-INF/NOTICE.txt'
-        exclude 'META-INF/notice.txt'
-        exclude 'META-INF/ASL2.0'
-        exclude 'META-INF/plexus/components.xml'
-        exclude 'META-INF/INDEX.LIST'
     }
 }
 
-
-configurations {
-    all {
-        exclude group: 'commons-logging', module: 'commons-logging'
-        resolutionStrategy.force 'junit:junit:4.12'
-    }
+configurations.configureEach {
+    exclude group: 'commons-logging', module: 'commons-logging'
 }
 
 dependencies {
-    androidTestImplementation "com.android.support:support-annotations:$supportLibVersion"
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test:rules:1.0.2'
-    androidTestImplementation('com.android.support.test.espresso:espresso-core:3.0.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    testImplementation 'junit:junit:4.12'
+    // Local modules
+    implementation project(':treeview')
+    implementation project(':lib-android-compiler')
+    implementation project(':lib-google-java-format')
+    implementation project(':androidlogcat')
+    implementation project(':common')
+    implementation project(':lib-n-ide-release-10')
 
-    api fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    api project(':treeview')
-    api project(':lib-android-compiler')
-    api project(':lib-google-java-format')
-    api project(':androidlogcat')
-    api project(':common')
+    // AndroidX (same family as Conductino / Wayer)
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.preference:preference:1.2.1'
+    implementation 'androidx.multidex:multidex:2.0.1'
 
-    api project(':lib-n-ide-release-10')
+    // Small utilities still used by editor / project code
+    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'com.google.guava:guava:33.2.1-android'
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+    implementation 'commons-io:commons-io:2.15.1'
 
-    //firebase sdk
-    api "com.google.firebase:firebase-core:16.0.0"
-    api 'com.crashlytics.sdk.android:crashlytics:2.9.3'
+    // Optional UI helpers (keep only if layouts still reference them)
+    implementation 'com.amulyakhare:com.amulyakhare.textdrawable:1.0.1'
+    implementation 'com.makeramen:roundedimageview:2.3.0'
+    implementation 'com.simplecityapps:recyclerview-fastscroll:2.0.1'
+    implementation 'com.sothree.slidinguppanel:library:3.4.0'
+    implementation 'com.ogaclejapan.smarttablayout:library:2.0.0@aar'
+    implementation 'com.yqritc:recyclerview-flexibledivider:1.4.0'
+    implementation 'org.apmem.tools:layouts:1.10@aar'
+    implementation 'com.miguelcatalan:materialsearchview:1.4.0'
 
-    api 'io.github.kobakei:ratethisapp:1.2.0'
-    api 'com.amulyakhare:com.amulyakhare.textdrawable:1.0.1'
-    api 'com.miguelcatalan:materialsearchview:1.4.0'
-
-    /*Lib n-ide*/
-    api 'com.google.code.gson:gson:2.8.1'
-    api 'com.anjlab.android.iab.v3:library:1.0.44'
-    api 'org.apmem.tools:layouts:1.10@aar'
-    api 'com.makeramen:roundedimageview:2.2.1'
-    api 'com.yqritc:recyclerview-flexibledivider:1.2.9'
-    api 'com.sothree.slidinguppanel:library:3.4.0'
-    //noinspection GradleDependency newer version cause crash
-    api ('commons-io:commons-io:2.3'){
-        transitive = true
-    }
-
-    api 'com.simplecityapps:recyclerview-fastscroll:1.0.18'
-    api 'org.apache.commons:commons-lang3:3.7'
-    api 'com.google.guava:guava:25.1-android'
-    api 'com.ogaclejapan.smarttablayout:library:1.6.1@aar'
-
-    //android compat
-    api 'com.android.support:multidex:1.0.3'
-    api "com.android.support:recyclerview-v7:$supportLibVersion"
-    api "com.android.support:appcompat-v7:$supportLibVersion"
-    api "com.android.support:support-v4:$supportLibVersion"
-    api "com.android.support:support-vector-drawable:$supportLibVersion"
-    api "com.android.support:cardview-v7:$supportLibVersion"
-    api "com.android.support:support-annotations:$supportLibVersion"
-    api "com.android.support:design:$supportLibVersion"
-    api "com.android.support:preference-v7:$supportLibVersion"
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
-
-apply plugin: 'com.google.gms.google-services'
