@@ -1,76 +1,72 @@
-# Java N-IDE Java compiler on Android.
+# a-java-ide
 
-![Screenshot](art/wall_framed.png)
+Java N-IDE — a Java (and Android) IDE that runs on Android.
 
+You can edit, compile (JDK 1.7 toolchain), run, format, and package Java projects on-device. The project also embeds tooling for Android APK builds (aapt, dx, signer, etc.).
 
-## Overview
-This project is develop to help the community learn java on android.
-You can build and run Java file with JDK 1.7.
+This branch (`attempt_updating_codebase`) modernizes the **Gradle configuration** and documentation toward the style used in [Conductino-Android](https://github.com/ojilon/Conductino-Android) and [Wayer](https://github.com/ojilon/Wayer). Full module-by-module AndroidX / AGP 8 migration and a more functional Java core are still in progress.
 
-Download in Google Play Store
+## Quick links
 
-<a href="https://play.google.com/store/apps/details?id=com.duy.compiler.javanide"
-target="_blank">
-<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png"
-alt="IMAGE ALT TEXT HERE" width="200"/></a>
+- Migration status & plan: [docs/MIGRATION.md](docs/MIGRATION.md)
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Original wiki (tutorials): [wiki/](wiki/)
 
-## Todo
-1. Java compiler JDK 1.7 &#10004;
-2. Java editor &#10004;
-3. Java auto complete code &#10004; (But not working perfect)
-4. Java debugger (jdb).
-5. Run java file, class file &#10004;
-6. Build java library &#10004;
-7. Support VCS
-8. Decompile class, jar
-9. Java code formatter (Google Java code formatter) &#10004;
-10. Build Android app. &#10004;
-11. XML auto complete
-12. Layout builder for Android
-13. Android Logcat &#10004;
-14. Android debugger
+## What this project includes
 
-## What does tools the project include?
-1. Javac - Java compiler (module javacompiler)
-2. Aapt - Android asset package tool
-3. Dx - Dex for dalvik VM (module dx)
-4. Zip Signer
-5. Apk builder
+| Tool | Role |
+|------|------|
+| Javac (JDK 1.7) | Compile Java sources |
+| Google Java Format | Code formatter |
+| Dx | Dex conversion for Dalvik/ART |
+| Aapt / APK builder | Android packaging (legacy path) |
+| Decompiler | Class / jar inspection |
+| Android Logcat UI | Device log viewing |
 
+## Prerequisites (target after migration)
 
-## How to build this source
-1. Required Android Studio 3.0 and above
-2. Android NDK r12b (Newer version doesn't work)
-https://stackoverflow.com/questions/6849981/where-do-i-find-old-versions-of-android-ndk
-3. Android Build Tools 27.0.1
-4. Android SDK 27
+- Android Studio / SDK command-line tools
+- Gradle **8.x** (wrapper is configured for 8.14.5)
+- JDK 17 for the Gradle toolchain (app still targets older language level until modules are updated)
+- NDK only if you re-enable native pieces later
 
+> **Important:** Root Gradle files have been updated to a modern layout. Individual modules still use Support Library, old `apply plugin`, and AGP 3-era patterns. A clean `./gradlew assembleDebug` will **not** succeed until module `build.gradle` files are migrated. See [docs/MIGRATION.md](docs/MIGRATION.md).
 
-## Contribute
-I would absolutely love every possible kind of contributions. If you
-have a questions, ideas, need help or want to propose a change just open
-an issue. Pull request are greatly appreciated.
+## Build (once modules are migrated)
 
-## Tutorials
-1. Create and build simple java project https://github.com/tranleduy2000/javaide/wiki/Create-simple-Java-project
-2. Open Java examples
-1. Build java file with library https://youtu.be/fUFqR8ZlChg
-3. Build simple Android app https://youtu.be/euZilR8-EhA
+```bash
+./gradlew assembleDebug
+./gradlew :app:testDebugUnitTest
+```
 
-## GNU GPL 3.0 Licence
+## Project layout (high level)
 
-    Copyright (C) 2017-2018 Duy Tran Le
+```
+app/                    Main Android application
+common/                 Shared utilities
+treeview/               File / project tree UI
+androidlogcat/          Logcat viewer
+bouncycastle/           Crypto helpers
+jdk-1_7/                Bundled JDK 1.7 toolchain pieces
+dx/                     Dex tooling
+aosp/                   AOSP-derived build / lint / SDK libraries (legacy)
+lib-*/                  Decompiler, compiler, formatter, release helpers
+wiki/                   Tutorials and images
+docs/                   Migration and developer notes
+```
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+## Code direction (Java)
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+Goal on this branch:
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+- Prefer **functional** style for pure logic (parsing, transforms, pure data stores).
+- Keep **OOP / Android framework types** only at the boundary that talks to XML layouts, Activities, Views, and the Android lifecycle.
+- Match the clarity and small surface area of Conductino / Wayer Java (managers, stores, thin Activities).
 
+See `docs/MIGRATION.md` for concrete steps.
+
+## License
+
+GNU GPL 3.0 — see [LICENSE](LICENSE).
+
+Original work © 2017–2018 Duy Tran Le; this fork continues under the same license.
