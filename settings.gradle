@@ -1,7 +1,43 @@
-include ':common'
-include ':app', ':treeview', ':androidlogcat'
-include ':bouncycastle', ':jdk-1_7', ':dx'
+// ─────────────────────────────────────────────────────────────
+// a-java-ide — Gradle settings (aligned with Conductino / Wayer)
+// ─────────────────────────────────────────────────────────────
 
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    // Prefer FAIL_ON_PROJECT_REPOS once every module stops declaring its own repos.
+    // Temporarily PREFER_SETTINGS so legacy modules keep building during migration.
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        // Temporary: some historical deps still resolve only from these
+        // Remove after AndroidX / dependency cleanup.
+        maven { url 'https://maven.google.com' }
+    }
+}
+
+rootProject.name = "a-java-ide"
+
+// Application + core UI / tooling modules
+include ':app'
+include ':common'
+include ':treeview'
+include ':androidlogcat'
+
+// Crypto / runtime helpers
+include ':bouncycastle'
+include ':jdk-1_7'
+include ':dx'
+
+// AOSP-derived build tooling (legacy; migrate carefully)
 include ':aosp:annotations'
 include ':aosp:dvlib'
 include ':aosp:layoutlib-api'
@@ -15,14 +51,13 @@ include ':aosp:builder-test-api'
 include ':aosp:manifest-merger'
 include ':aosp:profile'
 include ':aosp:project-test-lib'
-
 include ':aosp:gradle'
 include ':aosp:lint'
 include ':aosp:lint-api'
 include ':aosp:lint-checks'
 
+// Libraries bundled with the IDE
 include ':lib-google-java-format'
 include ':lib-decompiler'
 include ':lib-android-compiler'
-
 include ':lib-n-ide-release-10'
